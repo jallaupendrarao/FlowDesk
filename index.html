@@ -255,6 +255,15 @@
     white-space: pre-wrap;
   }
 
+  /* ---- Comm Sheet ---- */
+  .csStats { grid-template-columns: repeat(5, 1fr); }
+  @media (max-width: 640px) { .csStats { grid-template-columns: 1fr 1fr; } }
+  .csTableWrap { overflow: auto; max-height: 340px; border: 1px solid var(--line); border-radius: 10px; }
+  .csTable { border-collapse: collapse; font-size: 12.5px; width: 100%; white-space: nowrap; }
+  .csTable th, .csTable td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  .csTable th { position: sticky; top: 0; background: var(--surface-3); font-weight: 600; }
+  a.primary { background: var(--accent); color: #fff; padding: 10px 18px; border-radius: 9px; font-weight: 600; font-size: 14px; cursor: pointer; }
+
   /* ---- Navbar controls: theme toggle ---- */
   .navControls { display: flex; align-items: center; gap: 10px; }
   .iconBtn {
@@ -287,6 +296,30 @@
   .loginBox input[type=text], .loginBox input[type=password] {
     background: #ffffff; color: #211c17; border-color: #e6e0d2;
   }
+  /* ---- RCDC SLA module ---- */
+  .rc-scroll { overflow-x: auto; margin-top: 10px; }
+  .rc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rc-table th, .rc-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  .rc-table th { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; background: var(--surface-3); }
+  .rc-table .l { text-align: left; }
+  .rc-table td.mono { font-family: var(--mono); font-size: 12.5px; }
+  .rc-table .grp { text-align: center; border-left: 1px solid var(--line); color: var(--accent); }
+  .rc-badge { display: inline-block; font-family: var(--mono); font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+  .rc-badge.pass { background: var(--good-soft); color: var(--good); }
+  .rc-badge.fail { background: var(--bad-soft); color: var(--bad); }
+  .rc-badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .rc-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 14px 0; }
+  @media (max-width: 640px) { .rc-grid { grid-template-columns: 1fr 1fr; } }
+  .rc-bar { position: relative; height: 12px; border-radius: 99px; background: var(--surface-1); margin: 6px 0 16px; }
+  .rc-bar i { display: block; height: 100%; border-radius: 99px; }
+  .rc-bar b { position: absolute; top: -4px; width: 2px; height: 20px; background: var(--ink); }
+  .rc-barlbl { font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px; }
+  .rc-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; align-items: center; }
+  .rc-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .rc-tabs select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 13px; }
+  .rc-list { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+  .rc-sec { font-family: var(--display); font-size: 14px; font-weight: 600; margin: 22px 0 4px; }
+  .rc-note { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -354,6 +387,18 @@
         <div class="icon-badge">🛰️</div>
         <h2>Command Center</h2>
         <p>Look up a meter's Node ID and generate matching IMG + Meter Admin command files.</p>
+      </div>
+      <div class="module-card" data-module="rcdc" onclick="showView('rcdc')">
+        <span class="goArrow">→</span>
+        <div class="icon-badge">⏱️</div>
+        <h2>RCDC SLA</h2>
+        <p>Check Remote Connect / Disconnect command SLA (15 min &amp; 6 hr) for DG-01 and DG-02.</p>
+      </div>
+      <div class="module-card" data-module="comm" onclick="showView('comm')">
+        <span class="goArrow">→</span>
+        <div class="icon-badge">📋</div>
+        <h2>Comm Sheet</h2>
+        <p>Build the KIMBAL meter list from the warehouse report and fill location, consumer details and latitude/longitude from MI, MICI and NSC files.</p>
       </div>
     </div>
   </div>
@@ -522,6 +567,136 @@
     </div>
   </div>
 
+  <!-- ============================= MODULE 4: RCDC SLA ============================= -->
+  <div id="rcdcView" style="display:none">
+    <h1>RCDC SLA</h1>
+    <p class="lead">Upload the ZIP (or Excel) for each phase. Commands are merged, DC (value 1) and RC (value 2) are timed from Created At to Completed On, and checked against the SLA.</p>
+
+    <div class="card">
+      <h3>📡 DG-01</h3>
+      <div class="dropzone" id="rc1_dropzone">
+        <div class="icon">📦</div>
+        <div class="main">Drop DG-01 RCDC ZIP / Excel here</div>
+        <div class="sub">.zip · .xlsx · .xls · .csv — all sheets inside are merged</div>
+        <input type="file" id="rc1_fileInput" multiple accept=".zip,.xlsx,.xls,.xlsm,.csv">
+      </div>
+      <div class="chips" id="rc1_chips"></div>
+    </div>
+
+    <div class="card">
+      <h3>📡 DG-02</h3>
+      <div class="dropzone" id="rc2_dropzone">
+        <div class="icon">📦</div>
+        <div class="main">Drop DG-02 RCDC ZIP / Excel here</div>
+        <div class="sub">.zip · .xlsx · .xls · .csv — all sheets inside are merged</div>
+        <input type="file" id="rc2_fileInput" multiple accept=".zip,.xlsx,.xls,.xlsm,.csv">
+      </div>
+      <div class="chips" id="rc2_chips"></div>
+    </div>
+
+    <div class="card">
+      <h3>⚙️ SLA criteria (edit if your contract differs)</h3>
+      <div class="row">
+        <div class="field"><label for="rc_m15">Window 1 (minutes)</label><input type="text" inputmode="decimal" id="rc_m15" value="15"></div>
+        <div class="field"><label for="rc_t15">Window 1 target (% of commands)</label><input type="text" inputmode="decimal" id="rc_t15" value="95"></div>
+        <div class="field"><label for="rc_m360">Window 2 (minutes)</label><input type="text" inputmode="decimal" id="rc_m360" value="360"></div>
+        <div class="field"><label for="rc_t360">Window 2 target (%)</label><input type="text" inputmode="decimal" id="rc_t360" value="99.5"></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="rc_generateBtn" disabled>Generate SLA report</button>
+        <span id="rc_statusPill"></span>
+      </div>
+      <div class="console" id="rc_console"></div>
+    </div>
+
+    <div id="rc_results" style="display:none">
+      <div id="rc_out_rc1"></div>
+      <div id="rc_out_rc2"></div>
+      <div class="card">
+        <h3>Copy as text (for your group chat)</h3>
+        <textarea id="rc_summaryText" readonly style="width:100%; min-height:150px; font-family:var(--mono); font-size:13px; border:1px solid var(--line); border-radius:8px; padding:10px;"></textarea>
+        <div class="actions">
+          <button class="secondary" id="rc_copyBtn">📋 Copy to clipboard</button>
+          <span id="rc_copyStatus" style="font-size:12.5px; color:var(--good);"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================= MODULE 5: COMM SHEET ============================= -->
+  <div id="commView" style="display:none">
+    <h1>Comm Sheet</h1>
+    <p class="lead">Upload the warehouse report, then the MI, MICI and NSC files. Only KIMBAL meters are kept, and each meter's circle, division, feeder, consumer and contact details are filled from the first file that has them (MI, then MICI, then NSC).</p>
+    <div class="card">
+      <h3>🏭 Warehouse report</h3>
+      <div class="dropzone" id="cs_w_dropzone">
+        <div class="icon">📄</div>
+        <div class="main">Drop warehouse report CSV(s) here</div>
+        <div class="sub">.csv · .xlsx — you can add several files</div>
+        <input type="file" id="cs_w_fileInput" multiple accept=".csv,.txt,.xlsx,.xls,.xlsm">
+      </div>
+      <div class="chips" id="cs_w_chips"></div>
+    </div>
+    <div class="card">
+      <h3>1️⃣ MI file</h3>
+      <div class="dropzone" id="cs_mi_dropzone">
+        <div class="icon">📄</div>
+        <div class="main">Drop MI file(s) here — meter column: New Meter Number Scan</div>
+        <div class="sub">.csv · .xlsx — you can add several files</div>
+        <input type="file" id="cs_mi_fileInput" multiple accept=".csv,.txt,.xlsx,.xls,.xlsm">
+      </div>
+      <div class="chips" id="cs_mi_chips"></div>
+    </div>
+    <div class="card">
+      <h3>2️⃣ MICI file</h3>
+      <div class="dropzone" id="cs_mici_dropzone">
+        <div class="icon">📄</div>
+        <div class="main">Drop MICI file(s) here — meter column: New Meter QR Code</div>
+        <div class="sub">.csv · .xlsx — you can add several files</div>
+        <input type="file" id="cs_mici_fileInput" multiple accept=".csv,.txt,.xlsx,.xls,.xlsm">
+      </div>
+      <div class="chips" id="cs_mici_chips"></div>
+    </div>
+    <div class="card">
+      <h3>3️⃣ NSC file</h3>
+      <div class="dropzone" id="cs_nsc_dropzone">
+        <div class="icon">📄</div>
+        <div class="main">Drop NSC file(s) here — meter column: New Meter QR Code</div>
+        <div class="sub">.csv · .xlsx — you can add several files</div>
+        <input type="file" id="cs_nsc_fileInput" multiple accept=".csv,.txt,.xlsx,.xls,.xlsm">
+      </div>
+      <div class="chips" id="cs_nsc_chips"></div>
+    </div>
+
+    <div class="card">
+      <h3>⚙️ Output</h3>
+      <div class="row">
+        <div class="field"><label for="cs_manu">Manufacturer to keep</label><input type="text" id="cs_manu" value="KIMBAL"></div>
+        <div class="field"><label for="cs_outName">Output file name</label><input type="text" id="cs_outName" value="Comm_Sheet"></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="cs_generateBtn" disabled>Build Comm Sheet</button>
+        <span id="cs_statusPill"></span>
+      </div>
+      <div id="cs_progress" style="font-size:12.5px; color:var(--ink-soft); margin-top:10px;"></div>
+      <div class="console" id="cs_console"></div>
+    </div>
+
+    <div id="cs_results" style="display:none">
+      <div class="card">
+        <h3>✅ Result</h3>
+        <div class="stat-grid csStats" id="cs_stats"></div>
+        <div class="actions">
+          <a class="primary" id="cs_download" style="text-decoration:none; display:inline-block;">⬇ Download Excel</a>
+          <span id="cs_dlInfo" style="font-size:12.5px; color:var(--ink-soft);"></span>
+        </div>
+        <h3 style="margin-top:22px;">Preview</h3>
+        <div class="csTableWrap"><table class="csTable" id="cs_preview"></table></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <div class="appFooter">— Developed by Upendra —</div>
@@ -543,10 +718,12 @@ function showView(name) {
   document.getElementById('mergerView').style.display = name === 'merger' ? 'block' : 'none';
   document.getElementById('dpView').style.display = name === 'dp' ? 'block' : 'none';
   document.getElementById('cmdView').style.display = name === 'cmd' ? 'block' : 'none';
+  document.getElementById('rcdcView').style.display = name === 'rcdc' ? 'block' : 'none';
+  document.getElementById('commView').style.display = name === 'comm' ? 'block' : 'none';
 
   const crumbEl = document.getElementById('navCrumb');
   const backBtn = document.getElementById('navBackBtn');
-  const labels = { merger: 'Merge Hub', dp: 'DP Pulse', cmd: 'Command Center' };
+  const labels = { merger: 'Merge Hub', dp: 'DP Pulse', cmd: 'Command Center', rcdc: 'RCDC SLA', comm: 'Comm Sheet' };
   if (name === 'home') {
     crumbEl.innerHTML = '';
     backBtn.style.display = 'none';
@@ -1252,18 +1429,888 @@ function wireDropzone(dropzoneId, inputId, chipsId, onFilesChanged) {
 })();
 
 // =============================================================================
+// MODULE 4: RCDC SLA
+// DC = Command Value 1, RC = Command Value 2. Time = Completed On - Created At.
+// A command counts as SLA-success only if status is Success AND time <= window.
+// =============================================================================
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const PHASES = [{ key: 'rc1', label: 'DG-01' }, { key: 'rc2', label: 'DG-02' }];
+  const TYPES = [['DC', 'DC (Disconnect · value 1)'], ['RC', 'RC (Reconnect · value 2)'], ['ALL', 'Overall']];
+  const genBtn = $('rc_generateBtn'), consoleEl = $('rc_console'), pill = $('rc_statusPill');
+  const state = {};
+
+  PHASES.forEach(ph => {
+    ph.dz = wireDropzone(`${ph.key}_dropzone`, `${ph.key}_fileInput`, `${ph.key}_chips`, () => {
+      genBtn.disabled = !PHASES.some(p => p.dz && p.dz.getFiles().length);
+    });
+  });
+
+  function log(msg, cls) {
+    consoleEl.style.display = 'block';
+    const d = document.createElement('div');
+    d.className = 'line ' + (cls || ''); d.textContent = msg;
+    consoleEl.appendChild(d); consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  function parseDT(v) {
+    if (v === '' || v == null) return null;
+    if (v instanceof Date) return isNaN(v) ? null : Date.UTC(v.getFullYear(), v.getMonth(), v.getDate(), v.getHours(), v.getMinutes(), v.getSeconds());
+    if (typeof v === 'number') return Math.round((v - 25569) * 86400) * 1000;
+    const s = String(v).trim(); if (!s) return null;
+    let m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+    if (m) {
+      let h = +(m[4] || 0);
+      if (m[7]) { const pm = m[7].toUpperCase() === 'PM'; if (pm && h < 12) h += 12; if (!pm && h === 12) h = 0; }
+      return Date.UTC(+m[3], +m[2] - 1, +m[1], h, +(m[5] || 0), +(m[6] || 0));
+    }
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : null;
+  }
+  const p2 = n => String(n).padStart(2, '0');
+  function fmtDT(ms) { if (ms == null) return ''; const d = new Date(ms); return `${p2(d.getUTCDate())}-${p2(d.getUTCMonth() + 1)}-${d.getUTCFullYear()} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:${p2(d.getUTCSeconds())}`; }
+  function fmtDur(s) {
+    if (s == null) return '—';
+    const neg = s < 0; s = Math.abs(s);
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+    return (neg ? '-' : '') + (h ? h + 'h ' : '') + (h || m ? m + 'm ' : '') + x + 's';
+  }
+  const pct = (a, b) => b ? (a / b * 100) : 0;
+  const f2 = n => n.toFixed(2) + '%';
+  const need = (total, t) => Math.ceil(total * t / 100 - 1e-9);
+
+  async function loadPhase(files, label) {
+    const leaves = await filesToLeaves(files, log);
+    const recs = [], seen = new Set(); let dup = 0;
+    for (const leaf of leaves) {
+      let sheets;
+      try { sheets = readLeaf(leaf); } catch (e) { log(`${leaf.baseName}: cannot read (${e.message})`, 'err'); continue; }
+      for (const sh of sheets) {
+        const cols = Object.keys(sh.rows[0]);
+        const find = (...k) => cols.find(c => k.includes(norm(c)));
+        const cM = find('meternumber', 'meterno', 'meterserialnumber', 'meter'), cV = find('commandvalue'),
+          cC = find('createdat', 'createdon', 'created', 'createdtime'), cD = find('completedon', 'completedat', 'completed'),
+          cS = find('commandstatus', 'status');
+        if (!cM || !cV || !cC || !cD || !cS) { log(`${leaf.baseName} / ${sh.sheet}: required columns not found — skipped`, 'warn'); continue; }
+        let n = 0;
+        for (const row of sh.rows) {
+          const meter = String(row[cM]).trim(); if (!meter) continue;
+          const v = Number(row[cV]);
+          const st = String(row[cS]).trim().toLowerCase();
+          const status = st.includes('success') ? 'Success' : st.includes('fail') ? 'Failed' : st.includes('pend') ? 'Pending' : (String(row[cS]).trim() || 'Pending');
+          const created = parseDT(row[cC]), completed = parseDT(row[cD]);
+          const key = [meter, v, created, completed, status].join('|');
+          if (seen.has(key)) { dup++; continue; } seen.add(key);
+          recs.push({
+            meter, val: row[cV], type: v === 1 ? 'DC' : v === 2 ? 'RC' : 'Other', created, completed, status,
+            secs: created != null && completed != null ? Math.round((completed - created) / 1000) : null,
+          });
+          n++;
+        }
+        log(`${leaf.baseName} / ${sh.sheet}: ${n} commands`, 'ok');
+      }
+    }
+    if (dup) log(`${label}: ${dup} exact duplicate row(s) removed`, 'warn');
+    return { label, recs };
+  }
+
+  function stats(list) {
+    const s = { total: list.length, ok15: 0, ok360: 0, success: 0, failed: 0, pending: 0, other: 0 };
+    list.forEach(r => {
+      if (r.ok15) s.ok15++; if (r.ok360) s.ok360++;
+      if (r.status === 'Success') s.success++; else if (r.status === 'Failed') s.failed++; else if (r.status === 'Pending') s.pending++; else s.other++;
+    });
+    s.no15 = s.total - s.ok15; s.no360 = s.total - s.ok360;
+    s.p15 = pct(s.ok15, s.total); s.p360 = pct(s.ok360, s.total);
+    return s;
+  }
+
+  function analyse(p, cfg) {
+    Object.assign(p, cfg);
+    p.recs.forEach(r => {
+      const good = r.status === 'Success' && r.secs != null && r.secs >= 0;
+      r.ok15 = good && r.secs <= cfg.m15 * 60; r.ok360 = good && r.secs <= cfg.m360 * 60;
+    });
+    p.st = { DC: stats(p.recs.filter(r => r.type === 'DC')), RC: stats(p.recs.filter(r => r.type === 'RC')), ALL: stats(p.recs) };
+    p.unique = new Set(p.recs.map(r => r.meter)).size;
+    const ds = p.recs.map(r => r.created).filter(x => x != null);
+    p.dates = ds.length ? [...new Set(ds.map(x => fmtDT(x).slice(0, 10)))].join(', ') : '—';
+    p.otherCount = p.recs.filter(r => r.type === 'Other').length;
+  }
+
+  const result = (s, k, t) => {
+    if (!s.total) return '<span class="rc-badge warn">n/a</span>';
+    const p = k === 15 ? s.p15 : s.p360, ok = k === 15 ? s.ok15 : s.ok360;
+    return p >= t ? '<span class="rc-badge pass">✔ PASS</span>' : `<span class="rc-badge fail">✘ FAIL · ${need(s.total, t) - ok} short</span>`;
+  };
+
+  function reason(r, lim) {
+    if (r.status === 'Pending') return 'Pending — not completed';
+    if (r.status === 'Failed') return 'Failed' + (r.secs != null ? ' after ' + fmtDur(r.secs) : '');
+    if (r.status !== 'Success') return r.status;
+    if (r.secs == null) return 'No completion time';
+    if (r.secs < 0) return 'Completed before created (check data)';
+    return 'Late by ' + fmtDur(r.secs - lim * 60);
+  }
+  const wt = r => r.status === 'Pending' ? 0 : r.status === 'Failed' ? 1 : 2;
+  function listFor(p, tab, type) {
+    let l = p.recs.filter(r => type === 'ALL' || r.type === type);
+    if (tab === 'ok15') l = l.filter(r => r.ok15);
+    else if (tab === 'no15') l = l.filter(r => !r.ok15);
+    else if (tab === 'ok360') l = l.filter(r => r.ok360);
+    else if (tab === 'no360') l = l.filter(r => !r.ok360);
+    else if (tab === 'fp') l = l.filter(r => r.status !== 'Success');
+    if (['no15', 'no360', 'fp'].includes(tab)) l = l.slice().sort((a, b) => wt(a) - wt(b) || (b.secs == null ? -1 : b.secs) - (a.secs == null ? -1 : a.secs));
+    return l;
+  }
+  const remarkFor = (p, tab, r) => tab === 'no15' ? reason(r, p.m15) : (tab === 'no360' || tab === 'fp') ? reason(r, p.m360) : '';
+  const TABS = [['ok15', '✅ Success in window 1'], ['no15', '⏱️ Not in window 1'], ['ok360', '✅ Success in window 2'], ['no360', '⏱️ Not in window 2'], ['fp', '⚠️ Failed & Pending'], ['all', '📄 All commands']];
+
+  function drawList(p, box) {
+    const tab = box.dataset.tab, type = box.querySelector('.rc-type').value;
+    const l = listFor(p, tab, type), show = l.slice(0, 1000), hasR = tab !== 'ok15' && tab !== 'ok360' && tab !== 'all';
+    box.querySelector('.rc-listwrap').innerHTML = `<div class="rc-note" style="margin:0 0 6px"><b>${l.length}</b> command(s)${l.length > 1000 ? ' — showing first 1000, download Excel for all' : ''}</div>` +
+      (l.length ? `<div class="rc-list"><table class="rc-table"><tr><th class="l">#</th><th class="l">Meter number</th><th>Cmd</th><th>Created at</th><th>Completed on</th><th>Time taken</th><th>Status</th>${hasR ? '<th class="l">Reason</th>' : ''}</tr>` +
+        show.map((r, i) => `<tr><td class="l">${i + 1}</td><td class="l mono">${esc(r.meter)}</td><td>${r.type}</td><td>${fmtDT(r.created) || '—'}</td><td>${fmtDT(r.completed) || '—'}</td><td>${fmtDur(r.secs)}</td><td><span class="rc-badge ${r.status === 'Success' ? 'pass' : r.status === 'Failed' ? 'fail' : 'warn'}">${esc(r.status)}</span></td>${hasR ? `<td class="l">${esc(remarkFor(p, tab, r))}</td>` : ''}</tr>`).join('') + '</table></div>' : '');
+  }
+
+  function buildXlsx(p) {
+    const sumRows = [['RCDC SLA — ' + p.label], ['Data date(s)', p.dates], ['Total commands', p.st.ALL.total], ['Unique meters', p.unique], [],
+      ['Type', 'Total', `Success ≤${p.m15}m`, `Not ≤${p.m15}m`, `% ≤${p.m15}m`, `Target ${p.t15}%`, 'Result', `Success ≤${p.m360}m`, `Not ≤${p.m360}m`, `% ≤${p.m360}m`, `Target ${p.t360}%`, 'Result', 'Success', 'Failed', 'Pending']];
+    ['DC', 'RC', 'ALL'].forEach(k => {
+      const s = p.st[k], res = (x, t) => !s.total ? 'n/a' : x >= t ? 'PASS' : 'FAIL';
+      sumRows.push([k === 'ALL' ? 'Overall' : k, s.total, s.ok15, s.no15, +s.p15.toFixed(2), p.t15, res(s.p15, p.t15), s.ok360, s.no360, +s.p360.toFixed(2), p.t360, res(s.p360, p.t360), s.success, s.failed, s.pending]);
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumRows), 'Summary');
+    const map = (tab, mk) => listFor(p, tab, 'ALL').map(r => ({
+      'Meter Number': r.meter, 'Command': r.type, 'Command Value': r.val, 'Created At': fmtDT(r.created), 'Completed On': fmtDT(r.completed),
+      'Time Taken': fmtDur(r.secs), 'Time Taken (min)': r.secs == null ? '' : +(r.secs / 60).toFixed(2), 'Command Status': r.status, 'Reason': mk ? remarkFor(p, tab, r) : '',
+    }));
+    [['ok15', 'Success_W1', 0], ['no15', 'NotSuccess_W1', 1], ['ok360', 'Success_W2', 0], ['no360', 'NotSuccess_W2', 1], ['fp', 'Failed_Pending', 1], ['all', 'All_Commands', 0]].forEach(([t, n, m]) => {
+      const ws = XLSX.utils.json_to_sheet(map(t, m));
+      ws['!cols'] = [{ wch: 17 }, { wch: 9 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 13 }, { wch: 16 }, { wch: 15 }, { wch: 34 }];
+      XLSX.utils.book_append_sheet(wb, ws, n);
+    });
+    return XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  }
+
+  function renderPhase(p) {
+    const box = $('rc_out_' + p.key), A = p.st.ALL;
+    const sla = TYPES.map(([k, name]) => { const s = p.st[k];
+      return `<tr><td class="l"><b>${name}</b></td><td>${s.total}</td><td>${s.ok15}</td><td>${s.no15}</td><td><b>${f2(s.p15)}</b></td><td>${result(s, 15, p.t15)}</td><td class="grp">${s.ok360}</td><td>${s.no360}</td><td><b>${f2(s.p360)}</b></td><td>${result(s, 360, p.t360)}</td></tr>`; }).join('');
+    const stat = TYPES.map(([k, name]) => { const s = p.st[k];
+      return `<tr><td class="l"><b>${name}</b></td><td>${s.total}</td><td style="color:var(--good)">${s.success}</td><td style="color:var(--bad)">${s.failed}</td><td style="color:var(--warn)">${s.pending}</td><td>${s.other}</td></tr>`; }).join('');
+    const bars = ['DC', 'RC'].map(k => [[15, p.m15, p.t15, 'p15'], [360, p.m360, p.t360, 'p360']].map(([w, m, t, f]) => {
+      const v = p.st[k][f], ok = v >= t;
+      return `<div class="rc-barlbl"><span>${k} · within ${m} min</span><span><b>${f2(v)}</b> (target ${t}%)</span></div><div class="rc-bar"><i style="width:${Math.min(v, 100)}%;background:${ok ? 'var(--good)' : 'var(--bad)'}"></i><b style="left:${Math.min(t, 100)}%"></b></div>`;
+    }).join('')).join('');
+    box.innerHTML = `<div class="card">
+      <h3>📡 ${p.label} — RCDC SLA</h3>
+      <div class="rc-note">Data date: ${esc(p.dates)} · ${A.total} commands · ${p.unique} unique meters${p.otherCount ? ` · <span style="color:var(--warn)">${p.otherCount} with command value other than 1/2 (counted in Overall only)</span>` : ''}</div>
+      <div class="rc-grid">
+        <div class="stat-card"><div class="num">${A.total}</div><div class="label">Total commands</div></div>
+        <div class="stat-card good-border"><div class="num">${A.ok15}</div><div class="label">Success ≤ ${p.m15} min (${f2(A.p15)})</div></div>
+        <div class="stat-card good-border"><div class="num">${A.ok360}</div><div class="label">Success ≤ ${p.m360} min (${f2(A.p360)})</div></div>
+        <div class="stat-card bad-border"><div class="num">${A.failed}</div><div class="label">Failed</div></div>
+        <div class="stat-card"><div class="num" style="color:var(--warn)">${A.pending}</div><div class="label">Pending</div></div>
+      </div>
+      <div class="rc-sec">SLA result</div>
+      <div class="rc-scroll"><table class="rc-table"><tr><th></th><th></th><th colspan="4" class="grp">Window 1 · ${p.m15} min · target ≥ ${p.t15}%</th><th colspan="4" class="grp">Window 2 · ${p.m360} min · target ≥ ${p.t360}%</th></tr>
+        <tr><th class="l">Command</th><th>Total</th><th>Success</th><th>Not success</th><th>%</th><th>Result</th><th class="grp">Success</th><th>Not success</th><th>%</th><th>Result</th></tr>${sla}</table></div>
+      <div class="rc-note">"Success" = status Success <b>and</b> Completed On − Created At within the window. Failed and Pending commands are never counted as success.</div>
+      <div class="rc-sec">Progress vs target (black line = target)</div>${bars}
+      <div class="rc-sec">Command status</div>
+      <div class="rc-scroll"><table class="rc-table"><tr><th class="l">Command</th><th>Total</th><th>Success</th><th>Failed</th><th>Pending</th><th>Other</th></tr>${stat}</table></div>
+      <div class="rc-sec">Meter lists</div>
+      <div class="rc-lists" data-tab="no15"><div class="rc-tabs">${TABS.map(([k, n]) => `<button class="secondary${k === 'no15' ? ' active' : ''}" data-tab="${k}">${n}</button>`).join('')}
+        <select class="rc-type"><option value="ALL">All commands</option><option value="DC">DC only</option><option value="RC">RC only</option></select></div>
+        <div class="rc-listwrap"></div></div>
+      <div class="actions"><a class="download-link rc-dl" style="display:inline-block">⬇️ Download ${p.label} SLA Excel</a></div>
+    </div>`;
+    const lists = box.querySelector('.rc-lists');
+    lists.querySelectorAll('button').forEach(b => b.onclick = () => {
+      lists.querySelectorAll('button').forEach(x => x.classList.remove('active')); b.classList.add('active');
+      lists.dataset.tab = b.dataset.tab; drawList(p, lists);
+    });
+    lists.querySelector('.rc-type').onchange = () => drawList(p, lists);
+    drawList(p, lists);
+    const dl = box.querySelector('.rc-dl');
+    dl.href = URL.createObjectURL(new Blob([buildXlsx(p)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    dl.download = `RCDC_SLA_${p.label}.xlsx`;
+  }
+
+  function summaryText(ps) {
+    return ps.map(p => {
+      const lines = [`RCDC SLA — ${p.label} (${p.dates})`];
+      ['DC', 'RC', 'ALL'].forEach(k => {
+        const s = p.st[k]; if (!s.total) return;
+        lines.push(`${k === 'ALL' ? 'Overall' : k}: ${s.total} cmds | ${p.m15}m: ${s.ok15}/${s.total} = ${f2(s.p15)} (${s.p15 >= p.t15 ? 'PASS' : 'FAIL'}, target ${p.t15}%) | ${p.m360}m: ${s.ok360}/${s.total} = ${f2(s.p360)} (${s.p360 >= p.t360 ? 'PASS' : 'FAIL'}, target ${p.t360}%) | Failed ${s.failed}, Pending ${s.pending}`);
+      });
+      return lines.join('\n');
+    }).join('\n\n');
+  }
+
+  genBtn.addEventListener('click', async () => {
+    consoleEl.innerHTML = ''; pill.textContent = ''; pill.className = 'status-pill';
+    const cfg = { m15: parseFloat($('rc_m15').value), t15: parseFloat($('rc_t15').value), m360: parseFloat($('rc_m360').value), t360: parseFloat($('rc_t360').value) };
+    if (Object.values(cfg).some(v => !(v > 0))) { log('SLA criteria must be positive numbers.', 'err'); return; }
+    genBtn.disabled = true; log('Reading files…', 'info');
+    const done = [];
+    try {
+      for (const ph of PHASES) {
+        const files = ph.dz.getFiles(); $('rc_out_' + ph.key).innerHTML = '';
+        if (!files.length) continue;
+        log(`— ${ph.label} —`, 'info');
+        const p = await loadPhase(files, ph.label);
+        if (!p.recs.length) { log(`${ph.label}: no usable rows found (need Meter Number, Command Value, CreatedAt, Completed On, CommandStatus).`, 'err'); continue; }
+        p.key = ph.key; analyse(p, cfg); renderPhase(p); done.push(p);
+        log(`${ph.label}: ${p.recs.length} commands analysed`, 'ok');
+      }
+      if (done.length) {
+        $('rc_summaryText').value = summaryText(done);
+        $('rc_results').style.display = 'block';
+        pill.textContent = 'Done'; pill.classList.add('good');
+      } else { pill.textContent = 'No data'; pill.classList.add('bad'); }
+    } catch (e) { log('ERROR: ' + e.message, 'err'); pill.textContent = 'Error'; pill.classList.add('bad'); }
+    genBtn.disabled = false;
+  });
+
+  $('rc_copyBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('rc_summaryText').value); $('rc_copyStatus').textContent = 'Copied!'; }
+    catch (e) { $('rc_summaryText').select(); document.execCommand('copy'); $('rc_copyStatus').textContent = 'Copied!'; }
+    setTimeout(() => $('rc_copyStatus').textContent = '', 2000);
+  });
+})();
+
+// =============================================================================
+// COMM_CORE_START
+// =============================================================================
+// COMM SHEET — core engine (no DOM). Streaming CSV reader, KIMBAL filter,
+// MI -> MICI -> NSC lookup, and a streaming .xlsx writer that splits across
+// sheets when a sheet would pass Excel's 1,048,576-row limit.
+// =============================================================================
+const COMM_CORE = (function () {
+  'use strict';
+
+  const MAX_DATA_ROWS = 1048575;           // Excel: 1,048,576 rows per sheet, row 1 is the header
+  const OUT_HEADERS = [
+    'Phase', 'Manufacturer', 'Installation date', 'Consumer No', 'Meter Serial No',
+    'Circle Name', 'Division Name', 'Sub Division Name', 'Substation Name(Master)',
+    'Feeder Name(Master)', 'DTR Name(Master)', 'Consumer Name', 'Address', 'Mobile Number',
+    'Latitude', 'Longitude',
+  ];
+  const LOOKUP_NAMES = OUT_HEADERS.slice(5);          // the 11 columns brought in from MI / MICI / NSC
+
+  // Header names are compared with everything except letters and digits removed, lower-cased.
+  // The exact name from your instructions is always first; the rest are fallbacks.
+  const WH_ALIASES = {
+    phase: ['phase'],
+    manufacturer: ['manufacturer', 'manufacturername'],
+    idate: ['installationdate', 'installeddate'],
+    consumer: ['consumerno', 'consumernumber'],
+    meter: ['meterserialno', 'meterserialnumber', 'metersrno'],
+  };
+  const LOOKUP_ALIASES = [
+    ['circlename', 'circle'],
+    ['divisionname', 'division'],
+    ['subdivisionname', 'subdivision', 'installedsubdivision'],
+    ['substationnamemaster', 'substationname', 'substation'],
+    ['feedernamemaster', 'feedername'],
+    ['dtrnamemaster', 'dtrname'],
+    ['consumername', 'nameofconsumer'],
+    ['address', 'consumeraddress'],
+    ['mobilenumber', 'mobileno', 'mobile'],
+    ['latitude', 'lat'],
+    ['longitude', 'long', 'lng', 'lon'],
+  ];
+  const LEVELS = [
+    { id: 'MI', label: 'MI', keyName: 'New Meter Number Scan', keyAliases: ['newmeternumberscan'] },
+    { id: 'MICI', label: 'MICI', keyName: 'New Meter QR Code', keyAliases: ['newmeterqrcode'] },
+    { id: 'NSC', label: 'NSC', keyName: 'New Meter QR Code', keyAliases: ['newmeterqrcode'] },
+  ];
+
+  // ---------- small helpers ----------
+  const normHeader = s => String(s == null ? '' : s).replace(/^﻿/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normKey = v => {
+    let s = String(v == null ? '' : v);
+    if (s.charCodeAt(0) === 39) s = s.replace(/^'+/, '');                       // Excel's text prefix
+    return s.replace(/[\s​-‍﻿]+/g, '').toUpperCase();
+  };
+  const NL = /[\r\n\u2028\u2029]+/g;
+  const clean = v => {
+    if (v === undefined || v === null) return '';
+    let s = typeof v === 'string' ? v : String(v);
+    if (s.indexOf('\n') !== -1 || s.indexOf('\r') !== -1) s = s.replace(NL, ' ');
+    return s.trim();
+  };
+  // A substring in V8 can keep the whole 1 MB chunk it was cut from alive. Copying the strings we keep
+  // lets every chunk be freed, so memory stays proportional to what we keep, not to the file size.
+  const own = s => (s.length < 13 ? s : (' ' + s).slice(1));
+  const fmt = n => Number(n).toLocaleString('en-US');
+  const SCI = /^\d+(\.\d+)?e\+?\d+$/i;
+
+  let lastTick = 0;
+  async function tick() {
+    const now = Date.now();
+    if (now - lastTick > 80) { lastTick = now; await new Promise(r => setTimeout(r, 0)); }
+  }
+
+  function headerIndex(cells) {
+    const m = new Map();
+    for (let i = 0; i < cells.length; i++) { const k = normHeader(cells[i]); if (k && !m.has(k)) m.set(k, i); }
+    return m;
+  }
+  const pick = (m, aliases) => { for (const a of aliases) if (m.has(a)) return m.get(a); return -1; };
+
+  // ---------- streaming CSV ----------
+  function detectDelim(text) {
+    const counts = { 44: 0, 9: 0, 59: 0, 124: 0 };
+    let inQ = false, lines = 0;
+    const lim = Math.min(text.length, 65536);
+    for (let i = 0; i < lim; i++) {
+      const c = text.charCodeAt(i);
+      if (c === 34) inQ = !inQ;
+      else if (!inQ) {
+        if (c === 10) { if (++lines >= 20) break; }
+        else if (c in counts) counts[c]++;
+      }
+    }
+    let best = 44, bc = 0;
+    for (const k of [44, 9, 59, 124]) if (counts[k] > bc) { bc = counts[k]; best = k; }
+    return best;
+  }
+
+  // Parses every complete record in `text`; returns the index where the unfinished record starts
+  // (so the caller can carry it into the next chunk), or -1 if the consumer asked to stop.
+  function scan(text, final, st) {
+    const n = text.length, D = st.delim;
+    let i = 0, recStart = 0;
+    while (i < n) {
+      const fields = [];
+      recStart = i;
+      for (;;) {
+        if (i >= n) {                                       // text ended right after a delimiter
+          if (!final) return recStart;
+          fields.push(''); st.emit(fields); return n;
+        }
+        const wt = st.wanted;
+        const want = !wt || fields.length >= wt.length || wt[fields.length] === 1;
+        let val = '';
+        if (text.charCodeAt(i) === 34) {                    // quoted field
+          let j = i + 1, seg = j, parts = '';
+          for (;;) {
+            const q = text.indexOf('"', j);
+            if (q === -1) { if (!final) return recStart; if (want) val = parts + text.slice(seg); i = n; break; }
+            if (q + 1 >= n) { if (!final) return recStart; if (want) val = parts + text.slice(seg, q); i = n; break; }
+            if (text.charCodeAt(q + 1) === 34) { if (want) parts += text.slice(seg, q + 1); j = seg = q + 2; continue; }
+            if (want) val = parts + text.slice(seg, q);
+            i = q + 1; break;
+          }
+          let k = i;                                        // stray text after the closing quote
+          while (k < n) { const cc = text.charCodeAt(k); if (cc === D || cc === 10 || cc === 13) break; k++; }
+          if (k > i) { if (want) val += text.slice(i, k); i = k; }
+          if (i >= n && !final) return recStart;
+        } else {
+          let k = i;
+          while (k < n) { const cc = text.charCodeAt(k); if (cc === D || cc === 10 || cc === 13) break; k++; }
+          if (k >= n && !final) return recStart;
+          if (want) val = text.slice(i, k);
+          i = k;
+        }
+        fields.push(val);
+        if (i >= n) { st.emit(fields); return n; }          // last record, no trailing newline
+        const cc = text.charCodeAt(i);
+        if (cc === D) { i++; continue; }
+        i++;
+        if (cc === 13 && i < n && text.charCodeAt(i) === 10) i++;
+        st.emit(fields);
+        if (st.stop) return -1;
+        break;
+      }
+    }
+    return n;
+  }
+
+  async function parseCsv(blob, st, onProgress) {
+    st.delim = 44; st.stop = false;
+    const reader = blob.stream().getReader();
+    const dec = new TextDecoder('utf-8');
+    let carry = '', started = false, bytes = 0;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        let text;
+        if (done) text = carry + dec.decode();
+        else { bytes += value.length; text = carry + dec.decode(value, { stream: true }); }
+        if (!started && text.length > 0) {
+          if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+          st.delim = detectDelim(text); started = true;
+        }
+        const used = scan(text, done, st);
+        if (used === -1) break;
+        carry = done ? '' : text.slice(used);
+        if (onProgress) onProgress(bytes, blob.size);
+        await tick();
+        if (done) break;
+      }
+    } finally {
+      try { await reader.cancel(); } catch (e) { /* already closed */ }
+    }
+  }
+
+  // Reads one source (CSV stream, or every sheet of an Excel workbook), finds the header row among the first
+  // 30 records, and calls spec.onRow for each data row. Rows with a different column count than the header are
+  // never used (a shifted row would put one meter's data against another's) unless the extra cells are empty.
+  async function readTable(src, spec, hooks, label) {
+    const res = { rows: 0, short: 0, long: 0, longSamples: [], headerFound: false, sample: null, map: null };
+    const st = { wanted: null, stop: false, emit: null, delim: 44 };
+    let map = null, headerLen = 0, scanned = 0, dataNo = 0;
+
+    const resetHeader = () => { map = null; headerLen = 0; scanned = 0; dataNo = 0; st.wanted = null; };
+    st.emit = fields => {
+      if (fields.length === 1 && fields[0] === '') return;               // blank line
+      if (!map) {
+        scanned++;
+        if (!res.sample) res.sample = fields.slice(0, 12).map(clean);
+        const m = spec.findHeader(fields);
+        if (m) {
+          map = m; headerLen = fields.length; res.headerFound = true; res.map = m;
+          const w = new Uint8Array(headerLen);
+          for (const ci of spec.wanted(m)) if (ci >= 0 && ci < headerLen) w[ci] = 1;
+          st.wanted = w;
+        } else if (scanned >= 30) st.stop = true;
+        return;
+      }
+      dataNo++; res.rows++;
+      if (fields.length < headerLen) res.short++;
+      else if (fields.length > headerLen) {
+        for (let i = headerLen; i < fields.length; i++) {
+          if (fields[i] !== '') { res.long++; if (res.longSamples.length < 5) res.longSamples.push(dataNo); return; }
+        }
+      }
+      spec.onRow(fields, map);
+    };
+
+    if (src.kind === 'csv') {
+      await parseCsv(src.blob, st, (b, total) => {
+        if (hooks.progress) hooks.progress(`${label}: ${fmt(res.rows)} rows read (${total ? Math.min(100, Math.round(b / total * 100)) : 0}%)`);
+      });
+    } else {
+      if (!hooks.XLSX) throw new Error('Excel reading is not available here. Save the file as CSV and upload that.');
+      const wb = hooks.XLSX.read(src.buffer, { type: 'array' });
+      for (const name of wb.SheetNames) {
+        const rows = hooks.XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' });
+        resetHeader(); st.stop = false;
+        for (const r of rows) { st.emit(r.map(v => (v == null ? '' : String(v)))); if (st.stop) break; }
+        await tick();
+      }
+    }
+    return res;
+  }
+
+  // ---------- header recognisers ----------
+  function warehouseHeader(cells) {
+    const m = headerIndex(cells), map = { names: cells };
+    for (const f of Object.keys(WH_ALIASES)) { map[f] = pick(m, WH_ALIASES[f]); if (map[f] < 0) return null; }
+    return map;
+  }
+  function lookupHeader(level) {
+    return cells => {
+      const m = headerIndex(cells);
+      const key = pick(m, level.keyAliases);
+      if (key < 0) return null;
+      return { key, f: LOOKUP_ALIASES.map(a => pick(m, a)), names: cells };
+    };
+  }
+  const describeFound = res => (res.sample && res.sample.length ? `the first row has: ${res.sample.filter(Boolean).join(' | ')}` : 'the file looks empty');
+
+  // ---------- the build ----------
+  async function buildCommSheet(input, opts, hooks) {
+    hooks = hooks || {};
+    const log = hooks.log || (() => {});
+    const progress = hooks.progress || (() => {});
+    const wantManu = normKey(opts.manufacturer || 'KIMBAL');
+    const maxRows = opts.maxRows || MAX_DATA_ROWS;
+    const t0 = Date.now();
+
+    const intern = (() => { const pool = new Map(); return s => { let v = pool.get(s); if (v === undefined) { pool.set(s, s); v = s; } return v; }; })();
+
+    // ----- 1. warehouse: keep KIMBAL rows only, with the five columns kept together as one row -----
+    const rows = [];                          // [phase, manufacturer, installation date, consumer no, meter serial no]
+    const idx = new Map();                    // meter key -> row index (or an array when one meter appears with different details)
+    const manuSeen = new Map();
+    const wh = { files: [], total: 0, kept: 0, noMeter: 0, dupIdentical: 0, conflicts: 0, conflictSamples: [], sci: 0, ragged: 0 };
+    const sameRow = (a, b) => a[0] === b[0] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4];
+
+    for (const src of input.warehouse || []) {
+      const info = { name: src.name, read: 0, kept: 0 };
+      const r = await readTable(src, {
+        findHeader: warehouseHeader,
+        wanted: m => [m.phase, m.manufacturer, m.idate, m.consumer, m.meter],
+        onRow: (c, m) => {
+          info.read++; wh.total++;
+          const manu = clean(c[m.manufacturer]);
+          if (manuSeen.size < 100 || manuSeen.has(manu)) manuSeen.set(manu, (manuSeen.get(manu) || 0) + 1);
+          if (normKey(manu) !== wantManu) return;
+          const meter = clean(c[m.meter]);
+          if (!meter) { wh.noMeter++; return; }
+          if (SCI.test(meter)) wh.sci++;
+          const row = [own(clean(c[m.phase])), intern(manu), own(clean(c[m.idate])), own(clean(c[m.consumer])), own(meter)];
+          const key = normKey(meter), prev = idx.get(key);
+          if (prev === undefined) { idx.set(key, rows.length); rows.push(row); info.kept++; wh.kept++; return; }
+          const list = typeof prev === 'number' ? [prev] : prev;
+          if (list.some(p => sameRow(rows[p], row))) { wh.dupIdentical++; return; }
+          wh.conflicts++; if (wh.conflictSamples.length < 5) wh.conflictSamples.push(meter);
+          list.push(rows.length); rows.push(row); info.kept++; wh.kept++;
+          if (typeof prev === 'number') idx.set(key, list);
+        },
+      }, hooks, `Warehouse ${src.name}`);
+      wh.ragged += r.long + r.short;
+      if (!r.headerFound) {
+        throw new Error(`Warehouse file "${src.name}": could not find the columns Phase, Manufacturer, Installation date, Consumer No and Meter Serial No (${describeFound(r)}).`);
+      }
+      log(`Warehouse ${src.name}: ${fmt(info.read)} rows, ${fmt(info.kept)} are ${opts.manufacturer || 'KIMBAL'}`, 'ok');
+      if (r.long) log(`Warehouse ${src.name}: ${fmt(r.long)} row(s) skipped because they have extra filled columns (an unquoted comma shifts the data). First data rows: ${r.longSamples.join(', ')}`, 'warn');
+      if (r.short) log(`Warehouse ${src.name}: ${fmt(r.short)} row(s) have fewer columns than the header; the missing cells are treated as blank`, 'warn');
+      wh.files.push(info);
+    }
+    const topManu = [...manuSeen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    log('Manufacturers in the warehouse files: ' + topManu.map(([k, v]) => `${k || '(blank)'} ${fmt(v)}`).join(', '), 'info');
+    if (wh.noMeter) log(`${fmt(wh.noMeter)} ${opts.manufacturer || 'KIMBAL'} row(s) have no Meter Serial No and were left out`, 'warn');
+    if (wh.dupIdentical) log(`${fmt(wh.dupIdentical)} identical duplicate warehouse row(s) were counted once`, 'warn');
+    if (wh.conflicts) log(`${fmt(wh.conflicts)} row(s) share a Meter Serial No with a different Consumer No, date or phase. All are kept; for example ${wh.conflictSamples.join(', ')}`, 'warn');
+    if (wh.sci) log(`${fmt(wh.sci)} meter number(s) look like 1.23E+10. Excel has damaged them, so they cannot be matched. Export the warehouse file again with meter numbers as text`, 'err');
+    if (rows.length === 0) throw new Error(`No ${opts.manufacturer || 'KIMBAL'} rows found in the warehouse files. Check the Manufacturer column.`);
+
+    // ----- 2. MI, then MICI, then NSC: the first file that has details for a meter wins -----
+    const look = new Array(rows.length);
+    const level = new Uint8Array(rows.length);
+    const lv = LEVELS.map(L => ({ id: L.id, label: L.label, files: [], read: 0, used: 0, noData: 0, dupSame: 0, notInWh: 0, missing: new Set() }));
+
+    for (let li = 0; li < LEVELS.length; li++) {
+      const L = LEVELS[li], S = lv[li], lvNo = li + 1;
+      for (const src of input[L.id] || []) {
+        const info = { name: src.name, read: 0, used: 0 };
+        const r = await readTable(src, {
+          findHeader: lookupHeader(L),
+          wanted: m => [m.key, ...m.f],
+          onRow: (c, m) => {
+            info.read++; S.read++;
+            const key = normKey(c[m.key]);
+            if (!key) return;
+            const hit = idx.get(key);
+            if (hit === undefined) { S.notInWh++; return; }
+            const targets = typeof hit === 'number' ? [hit] : hit;
+            let owned = null, checked = false;
+            for (const t of targets) {
+              if (level[t] !== 0) { if (level[t] === lvNo) S.dupSame++; continue; }
+              if (!checked) {
+                checked = true;
+                const f = m.f.map(ci => (ci < 0 ? '' : clean(c[ci])));
+                if (f.some(v => v !== '')) owned = f.map((v, i) => (i < 6 ? intern(v) : own(v)));
+                else S.noData++;
+              }
+              if (owned) { look[t] = owned; level[t] = lvNo; S.used++; info.used++; }
+            }
+          },
+        }, hooks, `${L.label} ${src.name}`);
+        if (!r.headerFound) {
+          throw new Error(`${L.label} file "${src.name}": could not find the column "${L.keyName}" (${describeFound(r)}).`);
+        }
+        const names = r.map.names, notes = [], missing = [];
+        r.map.f.forEach((ci, i) => {
+          if (ci < 0) { missing.push(LOOKUP_NAMES[i]); S.missing.add(LOOKUP_NAMES[i]); }
+          else if (normHeader(names[ci]) !== normHeader(LOOKUP_NAMES[i])) notes.push(`${LOOKUP_NAMES[i]} <- "${clean(names[ci])}"`);
+        });
+        info.read = info.read;
+        log(`${L.label} ${src.name}: ${fmt(info.read)} rows read, details used for ${fmt(info.used)} meters`, 'ok');
+        if (notes.length) log(`${L.label} ${src.name}: matched by a similar column name: ${notes.join('; ')}`, 'info');
+        if (missing.length) log(`${L.label} ${src.name}: no column found for ${missing.join(', ')}. Those cells stay blank for this file`, 'err');
+        if (r.long) log(`${L.label} ${src.name}: ${fmt(r.long)} row(s) skipped because they have extra filled columns (an unquoted comma shifts the data). First data rows: ${r.longSamples.join(', ')}`, 'warn');
+        if (r.short) log(`${L.label} ${src.name}: ${fmt(r.short)} row(s) have fewer columns than the header; the missing cells are treated as blank`, 'warn');
+        S.files.push(info);
+      }
+      if (S.noData) log(`${L.label}: ${fmt(S.noData)} meter(s) were found but had no details, so the next file was tried`, 'info');
+      if (S.dupSame) log(`${L.label}: ${fmt(S.dupSame)} extra row(s) for a meter already filled from ${L.label}; the first one was used`, 'info');
+    }
+    if (!lv.some(S => S.files.length)) log('No MI, MICI or NSC file was added, so the details columns will be blank', 'warn');
+
+    // ----- 3. counts, preview, and output -----
+    const NL_ = LOOKUP_NAMES.length, NC_ = OUT_HEADERS.length;
+    const EMPTY9 = new Array(NL_).fill('');
+    const filled = new Array(NC_).fill(0);
+    let matched = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i], l = look[i] || EMPTY9;
+      for (let c = 0; c < 5; c++) if (r[c] !== '') filled[c]++;
+      for (let c = 0; c < NL_; c++) if (l[c] !== '') filled[5 + c]++;
+      if (level[i] !== 0) matched++;
+    }
+    const preview = [];
+    for (let i = 0; i < rows.length && preview.length < 10; i++) if (level[i] !== 0) preview.push(rows[i].concat(look[i]));
+    for (let i = 0; i < rows.length && preview.length < 10; i++) if (level[i] === 0) preview.push(rows[i].concat(EMPTY9));
+
+    const stats = {
+      total: rows.length, matched, notFound: rows.length - matched,
+      byLevel: lv.map(S => ({ id: S.id, used: S.used, read: S.read, files: S.files.length })),
+      filled, wh, lv, manufacturer: opts.manufacturer || 'KIMBAL',
+    };
+    log(`${fmt(rows.length)} ${stats.manufacturer} meters: ${lv.map(S => `${S.id} ${fmt(S.used)}`).join(', ')}, not found ${fmt(stats.notFound)}`, 'ok');
+
+    const sheetCount = Math.max(1, Math.ceil(rows.length / maxRows));
+    if (sheetCount > 1) log(`${fmt(rows.length)} rows is more than one Excel sheet can hold (1,048,576), so the data is split over ${sheetCount} sheets in the same file`, 'info');
+
+    const dataSheets = [];
+    for (let s = 0; s < sheetCount; s++) {
+      const from = s * maxRows, to = Math.min(rows.length, from + maxRows);
+      dataSheets.push({
+        name: sheetCount === 1 ? 'Comm Sheet' : `Comm Sheet ${s + 1}`,
+        kind: 'data', from, to,
+      });
+    }
+    const summaryRows = buildSummaryRows(stats, input, opts, sheetCount);
+    const sheets = dataSheets.concat([{ name: 'Match Summary', kind: 'summary', rows: summaryRows }]);
+
+    const blob = await writeWorkbook(sheets, { rows, look, EMPTY9 }, progress, log);
+    log(`Done in ${((Date.now() - t0) / 1000).toFixed(1)}s`, 'ok');
+    return { blob, stats, preview, sheetCount };
+  }
+
+  // ---------- Match Summary sheet content ----------
+  function buildSummaryRows(stats, input, opts, sheetCount) {
+    const T = (v, s) => ({ t: 's', v, s }), N = (v) => ({ t: 'n', v, s: 3 });
+    const out = [];
+    out.push([T('Comm Sheet: match summary', 4)]);
+    out.push([T('Generated on', 2), T(new Date().toLocaleString('en-GB'))]);
+    out.push([T('Manufacturer filter', 2), T(stats.manufacturer)]);
+    out.push([T('Data sheets in this file', 2), N(sheetCount)]);
+    out.push([]);
+    out.push([T('Meters', 1), T('Count', 1)]);
+    out.push([T(`${stats.manufacturer} meters in the warehouse files`, 2), N(stats.total)]);
+    for (const L of stats.byLevel) out.push([T(`Details filled from ${L.id}`), N(L.used)]);
+    out.push([T('No details found in MI, MICI or NSC'), N(stats.notFound)]);
+    out.push([]);
+    out.push([T('Column', 1), T('Filled', 1), T('Blank', 1)]);
+    OUT_HEADERS.forEach((h, i) => out.push([T(h), N(stats.filled[i]), N(stats.total - stats.filled[i])]));
+    out.push([]);
+    out.push([T('Files read', 1), T('Rows read', 1), T('Meters used', 1)]);
+    for (const f of stats.wh.files) out.push([T(`Warehouse: ${f.name}`), N(f.read), N(f.kept)]);
+    for (const S of stats.lv) for (const f of S.files) out.push([T(`${S.label}: ${f.name}`), N(f.read), N(f.used)]);
+    const notes = [];
+    if (stats.wh.dupIdentical) notes.push(`${fmt(stats.wh.dupIdentical)} identical duplicate warehouse rows were counted once`);
+    if (stats.wh.conflicts) notes.push(`${fmt(stats.wh.conflicts)} warehouse rows share a meter number with different details and were all kept`);
+    if (stats.wh.noMeter) notes.push(`${fmt(stats.wh.noMeter)} warehouse rows had no meter number and were left out`);
+    if (notes.length) { out.push([]); out.push([T('Notes', 1)]); notes.forEach(n => out.push([T(n)])); }
+    return out;
+  }
+
+  // ---------- streaming .xlsx writer ----------
+  const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crcUpdate(crc, u8) { for (let i = 0; i < u8.length; i++) crc = CRC_TABLE[(crc ^ u8[i]) & 0xFF] ^ (crc >>> 8); return crc; }
+
+  function makeZip() {
+    const enc = new TextEncoder();
+    const parts = [], central = [];
+    let offset = 0;
+    const d = new Date();
+    const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+
+    async function addFile(name, producer) {
+      if (typeof CompressionStream === 'undefined') throw new Error('This browser cannot build large Excel files. Please use a current Chrome or Edge.');
+      const nameBytes = enc.encode(name);
+      const cs = new CompressionStream('deflate-raw');
+      const w = cs.writable.getWriter(), r = cs.readable.getReader();
+      const chunks = []; let csize = 0, usize = 0, crc = 0xFFFFFFFF;
+      const pump = (async () => { for (;;) { const { done, value } = await r.read(); if (done) break; chunks.push(value); csize += value.length; } })();
+      try {
+        await producer(async str => { const u = enc.encode(str); crc = crcUpdate(crc, u); usize += u.length; await w.write(u); });
+        await w.close(); await pump;
+      } catch (e) { try { await w.abort(e); } catch (x) { /* ignore */ } throw e; }
+      crc = (crc ^ 0xFFFFFFFF) >>> 0;
+      if (usize > 0xFFFFFFFE || csize > 0xFFFFFFFE || offset > 0xFFFFFFFE) throw new Error('The Excel file is too large to build in the browser. Upload fewer rows at a time.');
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 8, true);
+      lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+      lh.setUint32(18, csize, true); lh.setUint32(22, usize, true); lh.setUint16(26, nameBytes.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), nameBytes, ...chunks);
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 8, true);
+      ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+      ch.setUint32(20, csize, true); ch.setUint32(24, usize, true); ch.setUint16(28, nameBytes.length, true);
+      ch.setUint32(42, offset, true);
+      central.push(new Uint8Array(ch.buffer), nameBytes);
+      offset += 30 + nameBytes.length + csize;
+    }
+    function finish() {
+      const cdSize = central.reduce((a, b) => a + b.length, 0);
+      const e = new DataView(new ArrayBuffer(22));
+      e.setUint32(0, 0x06054b50, true); e.setUint16(8, central.length / 2, true); e.setUint16(10, central.length / 2, true);
+      e.setUint32(12, cdSize, true); e.setUint32(16, offset, true);
+      return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    }
+    return { addFile, finish };
+  }
+
+  const XML_BAD = /[&<>\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/;
+  function esc(s) {
+    return s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  const colLetter = i => { let s = '', n = i + 1; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const COLS = Array.from({ length: OUT_HEADERS.length }, (_, i) => colLetter(i));
+  const textCell = (ref, v, s) => {
+    if (v.length > 32767) v = v.slice(0, 32767);
+    return `<c r="${ref}"${s ? ` s="${s}"` : ''} t="inlineStr"><is><t>${XML_BAD.test(v) ? esc(v) : v}</t></is></c>`;
+  };
+
+  const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="4"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><name val="Calibri"/><family val="2"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F2A36"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="5">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+  const SHEET_NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+
+  async function writeWorkbook(sheets, data, progress, log) {
+    const zip = makeZip();
+    const W = [18, 16, 16, 16, 20, 24, 24, 24, 26, 26, 26, 26, 40, 16, 14, 14];
+    await zip.addFile('[Content_Types].xml', async w => w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`));
+    await zip.addFile('_rels/.rels', async w => w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`));
+    const names = sheets.map(sh => `<sheet name="${esc(sh.name)}" sheetId="${sheets.indexOf(sh) + 1}" r:id="rId${sheets.indexOf(sh) + 1}"/>`).join('');
+    const dn = sheets.map((sh, i) => (sh.kind === 'data'
+      ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${sh.name}'!$A$1:$${COLS[COLS.length - 1]}$${sh.to - sh.from + 1}</definedName>` : '')).join('');
+    await zip.addFile('xl/workbook.xml', async w => w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook ${SHEET_NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${names}</sheets>${dn ? `<definedNames>${dn}</definedNames>` : ''}</workbook>`));
+    await zip.addFile('xl/_rels/workbook.xml.rels', async w => w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`));
+    await zip.addFile('xl/styles.xml', async w => w(STYLES_XML));
+
+    for (let si = 0; si < sheets.length; si++) {
+      const sh = sheets[si];
+      if (sh.kind === 'data') {
+        const n = sh.to - sh.from, last = n + 1;
+        progress(`Writing ${sh.name}...`);
+        await zip.addFile(`xl/worksheets/sheet${si + 1}.xml`, async w => {
+          await w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet ${SHEET_NS}><dimension ref="A1:${COLS[COLS.length - 1]}${last}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${W.map((x, i) => `<col min="${i + 1}" max="${i + 1}" width="${x}" customWidth="1"/>`).join('')}</cols><sheetData>`);
+          await w(`<row r="1" ht="22" customHeight="1">${OUT_HEADERS.map((h, i) => textCell(COLS[i] + '1', h, 1)).join('')}</row>`);
+          let buf = [];
+          for (let i = sh.from; i < sh.to; i++) {
+            const rn = i - sh.from + 2, a = data.rows[i], b = data.look[i] || data.EMPTY9;
+            let x = `<row r="${rn}">`;
+            for (let c = 0; c < 5; c++) { const v = a[c]; if (v !== '') x += textCell(COLS[c] + rn, v); }
+            for (let c = 0; c < LOOKUP_NAMES.length; c++) { const v = b[c]; if (v !== '') x += textCell(COLS[5 + c] + rn, v); }
+            buf.push(x + '</row>');
+            if (buf.length === 2000) {
+              await w(buf.join('')); buf = [];
+              progress(`Writing ${sh.name}: ${fmt(i - sh.from + 1)} of ${fmt(n)} rows`);
+              await tick();
+            }
+          }
+          if (buf.length) await w(buf.join(''));
+          await w(`</sheetData><autoFilter ref="A1:${COLS[COLS.length - 1]}${last}"/><ignoredErrors><ignoredError sqref="A1:${COLS[COLS.length - 1]}${last}" numberStoredAsText="1"/></ignoredErrors></worksheet>`);
+        });
+      } else {
+        await zip.addFile(`xl/worksheets/sheet${si + 1}.xml`, async w => {
+          let x = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet ${SHEET_NS}><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="52" customWidth="1"/><col min="2" max="3" width="22" customWidth="1"/></cols><sheetData>`;
+          sh.rows.forEach((row, ri) => {
+            const rn = ri + 1;
+            x += `<row r="${rn}">` + row.map((c, ci) => {
+              const ref = COLS[ci] + rn;
+              if (c.t === 'n') return `<c r="${ref}" s="${c.s || 0}"><v>${c.v}</v></c>`;
+              return textCell(ref, String(c.v), c.s);
+            }).join('') + '</row>';
+          });
+          await w(x + '</sheetData></worksheet>');
+        });
+      }
+    }
+    return zip.finish();
+  }
+
+  return { buildCommSheet, parseCsv, readTable, normKey, normHeader, OUT_HEADERS, LEVELS, MAX_DATA_ROWS };
+})();
+// COMM_CORE_END
+
+
+// =============================================================================
+// MODULE 5: COMM SHEET (UI)
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const genBtn = $('cs_generateBtn'), consoleEl = $('cs_console'), pill = $('cs_statusPill'), prog = $('cs_progress');
+  const ZONES = [{ id: 'warehouse', key: 'cs_w' }, { id: 'MI', key: 'cs_mi' }, { id: 'MICI', key: 'cs_mici' }, { id: 'NSC', key: 'cs_nsc' }];
+  let lastUrl = null;
+  ZONES.forEach(z => { z.dz = wireDropzone(`${z.key}_dropzone`, `${z.key}_fileInput`, `${z.key}_chips`, () => { genBtn.disabled = !ZONES[0].dz || !ZONES[0].dz.getFiles().length; }); });
+
+  function log(msg, cls) {
+    consoleEl.style.display = 'block';
+    const d = document.createElement('div'); d.className = 'line ' + (cls || ''); d.textContent = msg;
+    consoleEl.appendChild(d); consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+  async function toSource(f) {
+    if (/\.(csv|txt|tsv)$/i.test(f.name)) return { name: f.name, kind: 'csv', blob: f };
+    if (/\.(xlsx|xls|xlsm)$/i.test(f.name)) return { name: f.name, kind: 'xlsx', buffer: await f.arrayBuffer() };
+    throw new Error(`"${f.name}" is not a CSV or Excel file.`);
+  }
+
+  genBtn.addEventListener('click', async () => {
+    genBtn.disabled = true; consoleEl.innerHTML = ''; consoleEl.style.display = 'none';
+    pill.textContent = 'Working...'; pill.className = 'status-pill';
+    $('cs_results').style.display = 'none'; prog.textContent = '';
+    if (lastUrl) { URL.revokeObjectURL(lastUrl); lastUrl = null; }
+    try {
+      const input = {};
+      for (const z of ZONES) input[z.id] = await Promise.all(z.dz.getFiles().map(toSource));
+      const manu = ($('cs_manu').value || 'KIMBAL').trim();
+      const r = await COMM_CORE.buildCommSheet(input, { manufacturer: manu }, {
+        log, progress: t => { prog.textContent = t; }, XLSX: window.XLSX,
+      });
+      prog.textContent = '';
+      const s = r.stats;
+      const cards = [[s.total, `${esc(s.manufacturer)} meters`, ''], ...s.byLevel.map(l => [l.used, `From ${l.id}`, 'good-border']), [s.notFound, 'Not found', s.notFound ? 'bad-border' : '']];
+      $('cs_stats').innerHTML = cards.map(c => `<div class="stat-card ${c[2]}"><div class="num">${Number(c[0]).toLocaleString('en-US')}</div><div class="label">${c[1]}</div></div>`).join('');
+      $('cs_preview').innerHTML = `<thead><tr>${COMM_CORE.OUT_HEADERS.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${r.preview.map(row => `<tr>${row.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      lastUrl = URL.createObjectURL(r.blob);
+      let name = ($('cs_outName').value || 'Comm_Sheet').trim().replace(/[\\/:*?"<>|]+/g, '_').replace(/\.xlsx$/i, '');
+      const a = $('cs_download'); a.href = lastUrl; a.download = name + '.xlsx';
+      $('cs_dlInfo').textContent = `${(r.blob.size / 1048576).toFixed(1)} MB · ${r.sheetCount} data sheet${r.sheetCount > 1 ? 's' : ''} + Match Summary`;
+      $('cs_results').style.display = 'block';
+      pill.textContent = 'Done'; pill.classList.add('good');
+    } catch (e) {
+      log('Failed: ' + (e && e.message ? e.message : e), 'err');
+      pill.textContent = 'Failed'; pill.classList.add('bad');
+    } finally { genBtn.disabled = !ZONES[0].dz.getFiles().length; }
+  });
+})();
+
+// =============================================================================
 // LOGIN / ACCESS CONTROL
 // -----------------------------------------------------------------------------
 // EDIT THIS LIST to add a user, remove a user, or change a password.
 // "modules" controls which workspaces that person can open:
-//   "merger" -> Merge Hub   |   "dp" -> DP Pulse   |   "cmd" -> Command Center
+//   "merger" -> Merge Hub   |   "dp" -> DP Pulse   |   "cmd" -> Command Center   |   "rcdc" -> RCDC SLA   |   "comm" -> Comm Sheet
 // (Not real server-side security — anyone who views this file's source can
 // see these values. Good enough for keeping people out of modules they
 // shouldn't touch, not for protecting sensitive data.)
 // =============================================================================
 const KIMBAL_USERS = [
   // Admin — full access to all modules
-  { username: "admin", password: "Kimbal@Admin1", role: "admin", modules: ["merger", "dp", "cmd"] },
+  { username: "admin", password: "Kimbal@Admin1", role: "admin", modules: ["merger", "dp", "cmd", "rcdc", "comm"] },
 
   // Limited user — Merge Hub + Command Center only (no DP Pulse)
   { username: "user1", password: "Kimbal@User1", role: "user", modules: ["merger", "cmd"] },
