@@ -332,6 +332,10 @@
   .card { border-radius: var(--radius); }
   .module-card .icon-badge { box-shadow: inset 0 0 0 1px rgba(79,70,229,.12); }
   ::selection { background: var(--accent-soft); color: var(--ink); }
+  .refreshBtn { margin-left: 8px; }
+  .download-link:not([style*="inline-block"]) + .refreshBtn { display: none; }
+  #flowToast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--navy); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-md); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; }
+  #flowToast.show { opacity: 1; transform: translate(-50%, 0); }
   /* Routing column in the Comm Sheet preview */
   td.route { font-weight: 600; text-align: center; }
   td.route.r-comm { background: #c6efce; color: #14532d; }
@@ -370,7 +374,6 @@
     </div>
     <div class="navControls">
       <span class="userBadge" id="userBadge" style="display:none"></span>
-      <button class="navBackBtn" id="refreshBtn" onclick="refreshModule()" title="Clear this module's files and results" style="display:none">↻ Refresh</button>
       <button class="navBackBtn" id="navBackBtn" onclick="showView('home')" style="display:none">← Modules</button>
       <button class="iconBtn" id="themeToggleBtn" title="Toggle theme">🌙</button>
       <button class="navBackBtn" id="logoutBtn" title="Log out" style="display:none">Log out</button>
@@ -469,6 +472,7 @@
       <div class="timing" id="m_timing"></div>
       <div id="m_tip" style="display:none"></div>
       <a id="m_downloadBtn" class="download-link" download>Download merged file</a>
+      <button type="button" class="secondary refreshBtn" onclick="refreshModule()">↻ Refresh</button>
 
       <div class="console" id="m_console"></div>
       <details id="m_logToggle" style="display:none"><summary>Show/hide processing log</summary></details>
@@ -558,6 +562,7 @@
           <a id="p2_downloadMissingBtn" class="download-link" download>Download DG-02 BulkCommand.xlsx</a>
         </div>
       </div>
+      <div class="actions"><button type="button" class="secondary refreshBtn" onclick="refreshModule()">↻ Refresh</button></div>
     </div>
   </div>
 
@@ -586,6 +591,7 @@
       <div class="row">
         <a id="cmd_downloadImg" class="download-link" download>Download IMG file</a>
         <a id="cmd_downloadAdmin" class="download-link" download>Download Meter Admin file</a>
+        <button type="button" class="secondary refreshBtn" onclick="refreshModule()">↻ Refresh</button>
       </div>
     </div>
   </div>
@@ -641,6 +647,7 @@
         <div class="actions">
           <button class="secondary" id="rc_copyBtn">📋 Copy to clipboard</button>
           <span id="rc_copyStatus" style="font-size:12.5px; color:var(--good);"></span>
+          <button type="button" class="secondary refreshBtn" onclick="refreshModule()">↻ Refresh</button>
         </div>
       </div>
     </div>
@@ -696,8 +703,8 @@
       <div class="dropzone" id="cs_hm_dropzone">
         <div class="icon">📡</div>
         <div class="main">Drop HES meter file(s) here — matched on column: Meter Number</div>
-        <div class="sub">Brings First Communicated At, NodeId and SAT No · .csv · .xlsx — you can add several files</div>
-        <input type="file" id="cs_hm_fileInput" multiple accept=".csv,.txt,.xlsx,.xls,.xlsm">
+        <div class="sub">Brings First Communicated At, NodeId and SAT No · .zip (a ZIP inside a ZIP is fine) · .xlsx · .csv</div>
+        <input type="file" id="cs_hm_fileInput" multiple accept=".zip,.csv,.txt,.xlsx,.xls,.xlsm">
       </div>
       <div class="chips" id="cs_hm_chips"></div>
     </div>
@@ -706,8 +713,8 @@
       <div class="dropzone" id="cs_hr_dropzone">
         <div class="icon">🛰️</div>
         <div class="main">Drop HES routing file(s) here — matched on column: Meter</div>
-        <div class="sub">Brings Gateway ID and Communicated At (saved as Last Communicated At) · .csv · .xlsx</div>
-        <input type="file" id="cs_hr_fileInput" multiple accept=".csv,.txt,.xlsx,.xls,.xlsm">
+        <div class="sub">Brings Gateway ID and Communicated At (saved as Last Communicated At) · .zip (a ZIP inside a ZIP is fine) · .xlsx · .csv</div>
+        <input type="file" id="cs_hr_fileInput" multiple accept=".zip,.csv,.txt,.xlsx,.xls,.xlsm">
       </div>
       <div class="chips" id="cs_hr_chips"></div>
     </div>
@@ -736,6 +743,7 @@
         <div class="stat-grid csStats" id="cs_stats"></div>
         <div class="actions">
           <a class="primary" id="cs_download" style="text-decoration:none; display:inline-block;">⬇ Download Excel</a>
+          <button type="button" class="secondary refreshBtn" onclick="refreshModule()">↻ Refresh</button>
           <span id="cs_dlInfo" style="font-size:12.5px; color:var(--ink-soft);"></span>
         </div>
         <h3 style="margin-top:22px;">Preview</h3>
@@ -803,6 +811,7 @@
         <div class="actions">
           <button class="primary" id="mi_downloadBtn" disabled>⬇ Download Excel</button>
           <button class="secondary" id="mi_downloadDataBtn" disabled>⬇ Download Excel + data</button>
+          <button type="button" class="secondary refreshBtn" onclick="refreshModule()">↻ Refresh</button>
           
         </div>
       </div>
@@ -850,23 +859,53 @@ function showView(name) {
   if (name === 'home') {
     crumbEl.innerHTML = '';
     backBtn.style.display = 'none';
-    document.getElementById('refreshBtn').style.display = 'none';
   } else {
-    document.getElementById('refreshBtn').style.display = 'inline-flex';
     crumbEl.innerHTML = `<span class="sep">/</span><span class="current">${labels[name]}</span>`;
     backBtn.style.display = 'inline-flex';
   }
   window.scrollTo(0, 0);
 }
 
-// Refresh = clear every file, result and log of the open module and start it fresh.
-// The page is reloaded but the login is kept and the same module re-opens, so nothing stays in memory.
+// Refresh = clear every file, result and log of the open module, in place (no page reload).
+const MODULE_VIEWS = { merger: 'mergerView', dp: 'dpView', cmd: 'cmdView', rcdc: 'rcdcView', comm: 'commView', mi: 'miView' };
+const RESET_UI = {
+  merger: { hide: ['m_tip', 'm_downloadBtn'], text: ['m_summary', 'm_timing'] },
+  dp: { hide: ['dp_results'], html: ['dp_summaryTable', 'p1_missingList', 'p2_missingList', 'p1_r_meterCol', 'p1_r_dateCol', 'p1_d_meterCol', 'p2_r_meterCol', 'p2_r_dateCol', 'p2_d_meterCol'], text: ['dp_copyStatus', 'p1_detectStatus', 'p2_detectStatus'], value: ['dp_summaryText'], zero: ['p1_missingCount', 'p2_missingCount'] },
+  cmd: { hide: ['cmd_results'], value: ['cmd_meterInput'], text: ['cmd_lookupStatus'] },
+  rcdc: { hide: ['rc_results'], html: ['rc_out_rc1', 'rc_out_rc2'], value: ['rc_summaryText'], text: ['rc_copyStatus'] },
+  comm: { hide: ['cs_results'], html: ['cs_stats', 'cs_preview'], text: ['cs_progress', 'cs_dlInfo'] },
+  mi: {},
+};
+function flowToast(msg) {
+  let t = document.getElementById('flowToast');
+  if (!t) { t = document.createElement('div'); t.id = 'flowToast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(flowToast._t); flowToast._t = setTimeout(() => t.classList.remove('show'), 1800);
+}
 function refreshModule() {
   const cur = window.currentView;
-  if (!cur || cur === 'home') return;
-  if (!confirm('Clear all uploaded files and results in this module and start fresh?')) return;
-  try { sessionStorage.setItem('flowdesk_resume_view', cur); } catch (e) {}
-  location.reload();
+  if (!cur || cur === 'home' || !MODULE_VIEWS[cur]) return;
+  const view = document.getElementById(MODULE_VIEWS[cur]);
+  const $id = id => document.getElementById(id);
+  // 1. the module's own memory (parsed data, results, internal state)
+  try { if (window.FLOW_RESET && window.FLOW_RESET[cur]) window.FLOW_RESET[cur](); } catch (e) { console.error(e); }
+  // 2. free every download file made by this module
+  view.querySelectorAll('a[href^="blob:"]').forEach(a => { try { URL.revokeObjectURL(a.href); } catch (e) {} a.removeAttribute('href'); });
+  // 3. uploaded files and their chips
+  (window.FLOW_DZ || []).forEach(d => { if (view.contains(d.el)) d.clear(); });
+  // 4. results, logs, status
+  const cfg = RESET_UI[cur] || {};
+  (cfg.hide || []).forEach(id => { const e = $id(id); if (e) e.style.display = 'none'; });
+  (cfg.html || []).forEach(id => { const e = $id(id); if (e) e.innerHTML = ''; });
+  (cfg.text || []).forEach(id => { const e = $id(id); if (e) e.textContent = ''; });
+  (cfg.zero || []).forEach(id => { const e = $id(id); if (e) e.textContent = '0'; });
+  (cfg.value || []).forEach(id => { const e = $id(id); if (e) e.value = ''; });
+  view.querySelectorAll('.console').forEach(c => { c.innerHTML = ''; c.style.display = 'none'; });
+  view.querySelectorAll('details[id$="logToggle"]').forEach(d => { d.style.display = 'none'; d.open = false; });
+  view.querySelectorAll('[id$="statusPill"]').forEach(p => { p.textContent = ''; p.className = 'status-pill'; });
+  if (cur === 'comm') { const rd = $id('cs_refDate'); if (rd) { const t = new Date(), z = n => String(n).padStart(2, '0'); rd.value = `${t.getFullYear()}-${z(t.getMonth() + 1)}-${z(t.getDate())}`; } }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  flowToast('Cleared — ready for new files');
 }
 
 function humanSize(bytes) {
@@ -979,7 +1018,9 @@ function wireDropzone(dropzoneId, inputId, chipsId, onFilesChanged) {
     onFilesChanged(files);
   }
 
-  return { getFiles: () => files };
+  const api = { getFiles: () => files, clear() { files = []; input.value = ''; render(); } };
+  (window.FLOW_DZ = window.FLOW_DZ || []).push({ el: dz, clear: api.clear });
+  return api;
 }
 
 // =============================================================================
@@ -1576,6 +1617,7 @@ function wireDropzone(dropzoneId, inputId, chipsId, onFilesChanged) {
   const TYPES = [['DC', 'DC (Disconnect · value 1)'], ['RC', 'RC (Reconnect · value 2)'], ['ALL', 'Overall']];
   const genBtn = $('rc_generateBtn'), consoleEl = $('rc_console'), pill = $('rc_statusPill');
   const state = {};
+  (window.FLOW_RESET = window.FLOW_RESET || {}).rcdc = () => { Object.keys(state).forEach(k => delete state[k]); };
 
   PHASES.forEach(ph => {
     ph.dz = wireDropzone(`${ph.key}_dropzone`, `${ph.key}_fileInput`, `${ph.key}_chips`, () => {
@@ -1834,7 +1876,7 @@ const COMM_CORE = (function () {
   const BASE_HEADERS = [
     'Phase', 'Manufacturer', 'Installation date', 'Consumer No', 'Meter Serial No',
     'Circle Name', 'Division Name', 'Sub Division Name', 'Substation Name(Master)',
-    'Feeder Name(Master)', 'DTR Name(Master)', 'Consumer Name', 'Address', 'Mobile Number',
+    'Feeder Name(Master)', 'DTR Name(Master)', 'DTR Code', 'Consumer Name', 'Address', 'Mobile Number',
     'Latitude', 'Longitude',
   ];
   // Added from the two HES files: meter file (First Communicated At, NodeId, SAT No) and routing file (Gateway ID,
@@ -1842,7 +1884,8 @@ const COMM_CORE = (function () {
   const HES_HEADERS = ['First Communicated At', 'NodeId', 'SAT No', 'Gateway ID', 'Last Communicated At', 'Routing'];
   const OUT_HEADERS = BASE_HEADERS.concat(HES_HEADERS);
   const BASE_N = BASE_HEADERS.length;
-  const LOOKUP_NAMES = BASE_HEADERS.slice(5);          // the 11 columns brought in from MI / MICI / NSC
+  const LOOKUP_NAMES = BASE_HEADERS.slice(5);          // the 12 columns brought in from MI / MICI / NSC
+  const DTR_NAME_IDX = LOOKUP_NAMES.indexOf('DTR Name(Master)'), DTR_CODE_IDX = LOOKUP_NAMES.indexOf('DTR Code');
 
   // Header names are compared with everything except letters and digits removed, lower-cased.
   // The exact name from your instructions is always first; the rest are fallbacks.
@@ -1860,6 +1903,7 @@ const COMM_CORE = (function () {
     ['substationnamemaster', 'substationname', 'substation'],
     ['feedernamemaster', 'feedername'],
     ['dtrnamemaster', 'dtrname'],
+    ['dtrcodemaster', 'dtrcodefromfield', 'dtrcode'],      // DTR Code (level-specific order below)
     ['consumername', 'nameofconsumer'],
     ['address', 'consumeraddress'],
     ['mobilenumber', 'mobileno', 'mobile'],
@@ -1867,9 +1911,9 @@ const COMM_CORE = (function () {
     ['longitude', 'long', 'lng', 'lon'],
   ];
   const LEVELS = [
-    { id: 'MI', label: 'MI', keyName: 'New Meter Number Scan', keyAliases: ['newmeternumberscan'] },
-    { id: 'MICI', label: 'MICI', keyName: 'New Meter QR Code', keyAliases: ['newmeterqrcode'] },
-    { id: 'NSC', label: 'NSC', keyName: 'New Meter QR Code', keyAliases: ['newmeterqrcode'] },
+    { id: 'MI', label: 'MI', keyName: 'New Meter Number Scan', keyAliases: ['newmeternumberscan'], dtrCode: ['dtrcodemaster', 'dtrcodefromfield', 'dtrcode'] },
+    { id: 'MICI', label: 'MICI', keyName: 'New Meter QR Code', keyAliases: ['newmeterqrcode'], dtrCode: ['dtrcodemaster', 'dtrcodefromfield', 'dtrcode'] },      // DTR Code(Master)
+    { id: 'NSC', label: 'NSC', keyName: 'New Meter QR Code', keyAliases: ['newmeterqrcode'], dtrCode: ['dtrcodefromfield', 'dtrcodemaster', 'dtrcode'] },      // DTR Code(From Field)
   ];
 
   // ---------- small helpers ----------
@@ -2062,7 +2106,7 @@ const COMM_CORE = (function () {
       const m = headerIndex(cells);
       const key = pick(m, level.keyAliases);
       if (key < 0) return null;
-      return { key, f: LOOKUP_ALIASES.map(a => pick(m, a)), names: cells };
+      return { key, f: LOOKUP_ALIASES.map((a, i) => pick(m, i === DTR_CODE_IDX ? level.dtrCode : a)), names: cells };
     };
   }
   const describeFound = res => (res.sample && res.sample.length ? `the first row has: ${res.sample.filter(Boolean).join(' | ')}` : 'the file looks empty');
@@ -2173,6 +2217,9 @@ const COMM_CORE = (function () {
     // ----- 2. MI, then MICI, then NSC: the first file that has details for a meter wins -----
     const look = new Array(rows.length);
     const level = new Uint8Array(rows.length);
+    // DTR Name and DTR Code use the first non-blank value in the order MI, MICI, NSC, even if a different file won for the other details
+    const dtrAny = [new Array(rows.length).fill(''), new Array(rows.length).fill('')];
+    let dtrSeen = false;
     const lv = LEVELS.map(L => ({ id: L.id, label: L.label, files: [], read: 0, used: 0, noData: 0, dupSame: 0, notInWh: 0, missing: new Set() }));
 
     for (let li = 0; li < LEVELS.length; li++) {
@@ -2189,13 +2236,15 @@ const COMM_CORE = (function () {
             const hit = idx.get(key);
             if (hit === undefined) { S.notInWh++; return; }
             const targets = typeof hit === 'number' ? [hit] : hit;
+            const dn = m.f[DTR_NAME_IDX] < 0 ? '' : clean(c[m.f[DTR_NAME_IDX]]), dc = m.f[DTR_CODE_IDX] < 0 ? '' : clean(c[m.f[DTR_CODE_IDX]]);
+            if (dn !== '' || dc !== '') for (const t of targets) { if (dn !== '' && dtrAny[0][t] === '') dtrAny[0][t] = own(dn); if (dc !== '' && dtrAny[1][t] === '') dtrAny[1][t] = own(dc); }
             let owned = null, checked = false;
             for (const t of targets) {
               if (level[t] !== 0) { if (level[t] === lvNo) S.dupSame++; continue; }
               if (!checked) {
                 checked = true;
                 const f = m.f.map(ci => (ci < 0 ? '' : clean(c[ci])));
-                if (f.some(v => v !== '')) owned = f.map((v, i) => (i < 6 ? intern(v) : own(v)));
+                if (f.some((v, i) => i !== DTR_CODE_IDX && v !== '')) owned = f.map((v, i) => (i < 6 ? intern(v) : own(v)));
                 else S.noData++;
               }
               if (owned) { look[t] = owned; level[t] = lvNo; S.used++; info.used++; }
@@ -2207,10 +2256,11 @@ const COMM_CORE = (function () {
         }
         const names = r.map.names, notes = [], missing = [];
         r.map.f.forEach((ci, i) => {
-          if (ci < 0) { missing.push(LOOKUP_NAMES[i]); S.missing.add(LOOKUP_NAMES[i]); }
+          if (ci < 0) { if (i !== DTR_CODE_IDX) { missing.push(LOOKUP_NAMES[i]); S.missing.add(LOOKUP_NAMES[i]); } }
           else if (normHeader(names[ci]) !== normHeader(LOOKUP_NAMES[i])) notes.push(`${LOOKUP_NAMES[i]} <- "${clean(names[ci])}"`);
         });
         info.read = info.read;
+        if (r.map.f[DTR_CODE_IDX] >= 0) { dtrSeen = true; log(`${L.label} ${src.name}: DTR Code column "${clean(names[r.map.f[DTR_CODE_IDX]])}" found`, 'info'); }
         log(`${L.label} ${src.name}: ${fmt(info.read)} rows read, details used for ${fmt(info.used)} meters`, 'ok');
         if (notes.length) log(`${L.label} ${src.name}: matched by a similar column name: ${notes.join('; ')}`, 'info');
         if (missing.length) log(`${L.label} ${src.name}: no column found for ${missing.join(', ')}. Those cells stay blank for this file`, 'err');
@@ -2222,6 +2272,20 @@ const COMM_CORE = (function () {
       if (S.dupSame) log(`${L.label}: ${fmt(S.dupSame)} extra row(s) for a meter already filled from ${L.label}; the first one was used`, 'info');
     }
     if (!lv.some(S => S.files.length)) log('No MI, MICI or NSC file was added, so the details columns will be blank', 'warn');
+    else {
+      let dCode = 0, dName = 0;
+      for (let t = 0; t < rows.length; t++) {
+        const a = dtrAny[0][t], b = dtrAny[1][t];
+        if (a === '' && b === '') continue;
+        let l = look[t];
+        if (!l) { l = new Array(LOOKUP_NAMES.length).fill(''); look[t] = l; }
+        if (a !== '') l[DTR_NAME_IDX] = a;                // first non-blank value in the order MI, MICI, NSC
+        if (b !== '') l[DTR_CODE_IDX] = b;
+      }
+      for (let t = 0; t < rows.length; t++) { const l = look[t]; if (l && l[DTR_CODE_IDX] !== '') dCode++; if (l && l[DTR_NAME_IDX] !== '') dName++; }
+      log(`DTR Code filled for ${fmt(dCode)} meters, DTR Name(Master) for ${fmt(dName)} meters`, dCode ? 'ok' : 'warn');
+      if (!dtrSeen) log('No DTR Code column was found in MI, MICI or NSC (looked for DTR Code(Master) and DTR Code(From Field)). The DTR Code column stays blank', 'err');
+    }
 
     // ----- 2b. HES meter file and HES routing file -----
     const NR = rows.length;
@@ -2482,7 +2546,7 @@ const COMM_CORE = (function () {
 
   async function writeWorkbook(sheets, data, progress, log) {
     const zip = makeZip();
-    const W = [18, 16, 16, 16, 20, 24, 24, 24, 26, 26, 26, 26, 40, 16, 14, 14, 22, 14, 16, 22, 22, 14];
+    const W = [18, 16, 16, 16, 20, 24, 24, 24, 26, 26, 26, 18, 26, 40, 16, 14, 14, 22, 14, 16, 22, 22, 14];
     await zip.addFile('[Content_Types].xml', async w => w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`));
     await zip.addFile('_rels/.rels', async w => w(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -2570,7 +2634,31 @@ const COMM_CORE = (function () {
   async function toSource(f) {
     if (/\.(csv|txt|tsv)$/i.test(f.name)) return { name: f.name, kind: 'csv', blob: f };
     if (/\.(xlsx|xls|xlsm)$/i.test(f.name)) return { name: f.name, kind: 'xlsx', buffer: await f.arrayBuffer() };
-    throw new Error(`"${f.name}" is not a CSV or Excel file.`);
+    throw new Error(`"${f.name}" is not a ZIP, CSV or Excel file.`);
+  }
+  // A ZIP (with ZIPs inside ZIPs, any depth) is opened and every CSV / Excel file inside is used.
+  async function unzipSources(label, data, depth, out) {
+    if (depth > 8) throw new Error(`${label}: ZIPs are nested too deeply`);
+    if (typeof JSZip === 'undefined') throw new Error('ZIP files cannot be opened because the ZIP library did not load. Check the internet connection and reload the page.');
+    let zip;
+    try { zip = await JSZip.loadAsync(data); } catch (e) { throw new Error(`${label}: not a valid ZIP file (${e.message})`); }
+    for (const path of Object.keys(zip.files)) {
+      const e = zip.files[path];
+      const base = path.split('/').pop();
+      if (e.dir || !base || base.startsWith('.') || base.startsWith('~$') || path.includes('__MACOSX')) continue;
+      const full = `${label} > ${path}`;
+      if (/\.zip$/i.test(base)) { log(`${full}: ZIP inside a ZIP, opening it`, 'info'); await unzipSources(full, await e.async('arraybuffer'), depth + 1, out); }
+      else if (/\.(csv|txt|tsv)$/i.test(base)) out.push({ name: full, kind: 'csv', blob: await e.async('blob') });
+      else if (/\.(xlsx|xls|xlsm)$/i.test(base)) out.push({ name: full, kind: 'xlsx', buffer: await e.async('arraybuffer') });
+    }
+  }
+  async function toSources(f) {
+    if (!/\.zip$/i.test(f.name)) return [await toSource(f)];
+    const out = [];
+    await unzipSources(f.name, await f.arrayBuffer(), 0, out);
+    if (!out.length) throw new Error(`"${f.name}" has no CSV or Excel file inside.`);
+    log(`${f.name}: found ${out.length} file${out.length > 1 ? 's' : ''} inside (${out.map(o => o.name.split(' > ').pop().split('/').pop()).slice(0, 4).join(', ')}${out.length > 4 ? ', …' : ''})`, 'ok');
+    return out;
   }
 
   genBtn.addEventListener('click', async () => {
@@ -2580,7 +2668,7 @@ const COMM_CORE = (function () {
     if (lastUrl) { URL.revokeObjectURL(lastUrl); lastUrl = null; }
     try {
       const input = {};
-      for (const z of ZONES) input[z.id] = await Promise.all(z.dz.getFiles().map(toSource));
+      for (const z of ZONES) input[z.id] = (await Promise.all(z.dz.getFiles().map(toSources))).flat();
       const manu = ($('cs_manu').value || 'KIMBAL').trim();
       const refDay = COMM_CORE.dayNumber($('cs_refDate').value);
       const r = await COMM_CORE.buildCommSheet(input, { manufacturer: manu, commDays: Number($('cs_days').value) || 3, refDay: refDay === null ? undefined : refDay }, {
@@ -3009,6 +3097,13 @@ const COMM_CORE = (function () {
       log(`Downloaded ${fn}`, 'ok');
     } catch (e) { log('Download failed: ' + e.message, 'err'); }
   });
+
+  (window.FLOW_RESET = window.FLOW_RESET || {}).mi = () => {
+    cubeRows = null; whLookup = null; lastGrid = null; whNames = []; whCount = []; mfrNames = []; dgOf = []; minD = ''; maxD = ''; dupNote = '';
+    S.gprs = []; S.rf = [];
+    $('mi_resultWrap').style.display = 'none'; $('mi_whTable').innerHTML = ''; $('mi_preview').innerHTML = ''; $('mi_checks').innerHTML = '';
+    fromEl.value = toEl.value = ''; dlBtn.disabled = true; dlDataBtn.disabled = true; procBtn.disabled = true;
+  };
 
   // ---------- download summary + underlying data ----------
   // The files are streamed a second time and every installation row that is counted in the summary
